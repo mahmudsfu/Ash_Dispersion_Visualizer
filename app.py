@@ -306,7 +306,7 @@ def generate_output_gallery(base_folder):
 
     def make_preview(file_path):
         ext = os.path.splitext(file_path)[1].lower()
-        title = pn.pane.Markdown(f"### {os.path.basename(file_path)}", width=640)
+        title = pn.pane.Markdown(f"### {os.path.basename(file_path)}")
         download_button = pn.widgets.FileDownload(file=file_path, filename=os.path.basename(file_path),
                                                   label="⬇ Download", button_type="success", width=150)
 
@@ -441,7 +441,7 @@ This dashboard allows users to upload and visualize outputs from the NAME ash di
 - Reset the app with 🔄 if needed.
 - View logs if an error occurs.
 - Outputs are temporary per session.
-""", sizing_mode="stretch_width", width=800))
+""", sizing_mode="stretch_width"))
 
 tabs = pn.Tabs(
     ("🧱 3D Field", tab3d),
