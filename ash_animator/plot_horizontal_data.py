@@ -201,7 +201,7 @@ class Plot_Horizontal_Data:
                 frame_folder = os.path.join(self.output_dir, "frames", field)
             os.makedirs(frame_folder, exist_ok=True)
             frame_path = os.path.join(frame_folder, f"frame_{t+1:04d}.jpg")
-            plt.savefig(frame_path, dpi=300, bbox_inches='tight')
+            plt.savefig(frame_path, bbox_inches='tight')
             print(f"🖼️ Saved static frame: {frame_path}")
                     
             return []
