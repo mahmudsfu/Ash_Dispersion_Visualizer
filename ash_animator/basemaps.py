@@ -8,18 +8,23 @@ import cartopy.feature as cfeature
 from PIL import Image
 import matplotlib.pyplot as plt
 
-# Determine platform and fallback cache path
+# # Determine platform and fallback cache path
+# def get_cache_dir(app_name):
+#     if os.name == 'nt':
+#         return os.path.join(os.getenv('LOCALAPPDATA', tempfile.gettempdir()), f"{app_name}_cache")
+#     elif os.name == 'posix':
+#         home_dir = os.path.expanduser("~")
+#         if os.path.isdir(home_dir) and os.access(home_dir, os.W_OK):
+#             return os.path.join(home_dir, f".{app_name}_cache")
+#         else:
+#             return os.path.join(tempfile.gettempdir(), f"{app_name}_cache")
+#     else:
+#         return os.path.join(tempfile.gettempdir(), f"{app_name}_cache")
+
+# Determine cache directory based on location of app.py
 def get_cache_dir(app_name):
-    if os.name == 'nt':
-        return os.path.join(os.getenv('LOCALAPPDATA', tempfile.gettempdir()), f"{app_name}_cache")
-    elif os.name == 'posix':
-        home_dir = os.path.expanduser("~")
-        if os.path.isdir(home_dir) and os.access(home_dir, os.W_OK):
-            return os.path.join(home_dir, f".{app_name}_cache")
-        else:
-            return os.path.join(tempfile.gettempdir(), f"{app_name}_cache")
-    else:
-        return os.path.join(tempfile.gettempdir(), f"{app_name}_cache")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, f"{app_name}_cache")
 
 # Define cache directories
 CTX_TILE_CACHE_DIR = get_cache_dir("contextily")
