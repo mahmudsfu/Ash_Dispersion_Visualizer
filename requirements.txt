@@ -1,0 +1,13 @@
+panel
+xarray
+numpy
+matplotlib
+netCDF4
+pillow
+scipy
+cartopy
+contextily
+geopy
+adjustText
+basemap
+imageio
