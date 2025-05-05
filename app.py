@@ -1,4 +1,26 @@
+
 import os
+import tempfile
+
+# Writable cache directory
+CACHE_ROOT = os.path.join(tempfile.gettempdir(), "my_app_cache")
+os.makedirs(CACHE_ROOT, exist_ok=True)
+
+# Matplotlib cache directory (to avoid /.config write)
+os.environ["MPLCONFIGDIR"] = os.path.join(CACHE_ROOT, "matplotlib")
+os.makedirs(os.environ["MPLCONFIGDIR"], exist_ok=True)
+
+# Cartopy cache directory (avoid /.local)
+os.environ["CARTOPY_USER_BACKGROUNDS"] = os.path.join(CACHE_ROOT, "cartopy")
+os.environ["CARTOPY_CACHE_DIR"] = os.path.join(CACHE_ROOT, "cartopy")
+os.makedirs(os.environ["CARTOPY_CACHE_DIR"], exist_ok=True)
+
+# Optional: contextily tile cache
+os.environ["XDG_CACHE_HOME"] = os.path.join(CACHE_ROOT, "contextily")
+os.makedirs(os.environ["XDG_CACHE_HOME"], exist_ok=True)
+
+
+
 import glob
 import shutil
 import io
