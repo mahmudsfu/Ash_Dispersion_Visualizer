@@ -1,47 +1,54 @@
-
 import os
 import hashlib
+from PIL import Image
+import matplotlib.pyplot as plt
 import contextily as ctx
 from mpl_toolkits.basemap import Basemap
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from PIL import Image
-import matplotlib.pyplot as plt
 
-# Define cache directories
-# Optional: Set tile cache directory (must be done before contextily downloads tiles)
-os.environ["XDG_CACHE_HOME"] = os.path.expanduser("~/.contextily_cache")
+def get_cache_dir(app_name):
+    """
+    Returns a writable cache directory path depending on the OS.
+    Linux: tries /code/<app>_cache, falls back to /tmp/<app>_cache
+    Windows: uses LOCALAPPDATA/<app>_cache
+    """
+    if os.name == 'nt':
+        # Windows
+        base_dir = os.getenv('LOCALAPPDATA', os.getcwd())
+    else:
+        # Unix
+        base_dir = "/code"
+        try:
+            test_path = os.path.join(base_dir, f"{app_name}_cache")
+            os.makedirs(test_path, exist_ok=True)
+            os.chmod(test_path, 0o777)
+            return test_path
+        except PermissionError:
+            print(f"[PermissionError] Cannot use {base_dir}, falling back to /tmp.")
+            base_dir = "/tmp"
+    
+    cache_path = os.path.join(base_dir, f"{app_name}_cache")
+    os.makedirs(cache_path, exist_ok=True)
+    return cache_path
 
-CTX_TILE_CACHE_DIR = os.path.expanduser("~/.contextily_cache")
-BASEMAP_TILE_CACHE_DIR = os.path.expanduser("~/.basemap_cache")
+# Setup cache directories
+CTX_TILE_CACHE_DIR = get_cache_dir("contextily")
+BASEMAP_TILE_CACHE_DIR = get_cache_dir("basemap")
+CARTOPY_CACHE_DIR = get_cache_dir("cartopy")
 
-os.makedirs(CTX_TILE_CACHE_DIR, exist_ok=True)
-os.makedirs(BASEMAP_TILE_CACHE_DIR, exist_ok=True)
+# Set Cartopy environment variables
+os.environ["CARTOPY_USER_BACKGROUNDS"] = CARTOPY_CACHE_DIR
+os.environ["CARTOPY_CACHE_DIR"] = CARTOPY_CACHE_DIR
 
 def draw_etopo_basemap(ax, mode="basemap", zoom=11):
     """
-    Draws a high-resolution basemap background on the provided Cartopy GeoAxes.
-
+    Draws a basemap onto a Cartopy GeoAxes object.
     Parameters
     ----------
-    ax : matplotlib.axes._subplots.AxesSubplot
-        The matplotlib Axes object (with Cartopy projection) to draw the map background on.
-
-    mode : str, optional
-        The basemap mode to use:
-        - "stock": Default stock image from Cartopy.
-        - "contextily": Web tile background (CartoDB Voyager), with caching.
-        - "basemap": High-resolution shaded relief using Basemap, with caching.
-        Default is "basemap".
-
-    zoom : int, optional
-        Tile zoom level (only for "contextily"). Higher = more detail. Default is 7.
-
-    Notes
-    -----
-    - Uses high resolution for Basemap (resolution='h') and saves figure at 300 DPI.
-    - Cached images are reused using extent-based hashing to avoid re-rendering.
-    - Basemap is deprecated; Cartopy with web tiles is recommended for new projects.
+    ax : Cartopy GeoAxes
+    mode : 'stock' | 'contextily' | 'basemap'
+    zoom : int (contextily zoom level)
     """
     try:
         if mode == "stock":
@@ -50,18 +57,12 @@ def draw_etopo_basemap(ax, mode="basemap", zoom=11):
         elif mode == "contextily":
             extent = ax.get_extent(crs=ccrs.PlateCarree())
             ax.set_extent(extent, crs=ccrs.PlateCarree())
-            ctx.add_basemap(
-                ax,
-                crs=ccrs.PlateCarree(),
-                source=ctx.providers.CartoDB.Voyager,
-                zoom=zoom                
-            )
+            ctx.add_basemap(ax, crs=ccrs.PlateCarree(),
+                            source=ctx.providers.CartoDB.Voyager, zoom=zoom)
 
         elif mode == "basemap":
             extent = ax.get_extent(crs=ccrs.PlateCarree())
-
-            # Create a hash key for this extent
-            extent_str = f"{extent[0]:.4f}_{extent[1]:.4f}_{extent[2]:.4f}_{extent[3]:.4f}"
+            extent_str = "_".join(f"{v:.4f}" for v in extent)
             cache_key = hashlib.md5(extent_str.encode()).hexdigest()
             cache_file = os.path.join(BASEMAP_TILE_CACHE_DIR, f"{cache_key}_highres.png")
 
@@ -69,26 +70,19 @@ def draw_etopo_basemap(ax, mode="basemap", zoom=11):
                 img = Image.open(cache_file)
                 ax.imshow(img, extent=extent, transform=ccrs.PlateCarree())
             else:
-                # Create a high-resolution temporary figure
-                temp_fig, temp_ax = plt.subplots(figsize=(12, 9),
-                                                 subplot_kw={'projection': ccrs.PlateCarree()})
+                fig, temp_ax = plt.subplots(figsize=(12, 9),
+                                            subplot_kw={'projection': ccrs.PlateCarree()})
                 temp_ax.set_extent(extent, crs=ccrs.PlateCarree())
 
                 m = Basemap(projection='cyl',
                             llcrnrlon=extent[0], urcrnrlon=extent[1],
                             llcrnrlat=extent[2], urcrnrlat=extent[3],
-                            resolution='f', ax=temp_ax)  # 'h' = high resolution
+                            resolution='f', ax=temp_ax)
 
                 m.shadedrelief()
-                # m.drawcoastlines(linewidth=0.1)
-                # m.drawcountries(linewidth=0.1)
-                # m.drawmapboundary()
+                fig.savefig(cache_file, dpi=300, bbox_inches='tight', pad_inches=0)
+                plt.close(fig)
 
-                # Save high-DPI figure for clarity
-                temp_fig.savefig(cache_file, dpi=300, bbox_inches='tight', pad_inches=0)
-                plt.close(temp_fig)
-
-                # Load and display the cached image
                 img = Image.open(cache_file)
                 ax.imshow(img, extent=extent, transform=ccrs.PlateCarree())
 
@@ -96,6 +90,6 @@ def draw_etopo_basemap(ax, mode="basemap", zoom=11):
             raise ValueError(f"Unsupported basemap mode: {mode}")
 
     except Exception as e:
-        print(f"[Relief Error - {mode} mode]:", e)
+        print(f"[Basemap Error: {mode}] {e}")
         ax.add_feature(cfeature.LAND)
         ax.add_feature(cfeature.OCEAN)
