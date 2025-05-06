@@ -11,5 +11,4 @@ geopy
 adjustText
 basemap-data-hires
 imageio
-
-#basemap
+basemap
