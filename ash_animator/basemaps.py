@@ -91,8 +91,8 @@ def draw_etopo_basemap(ax, mode="basemap", zoom=11):
                 temp_fig.savefig(cache_file, dpi=300, bbox_inches='tight', pad_inches=0)
                 plt.close(temp_fig)
 
-                img = Image.open(cache_file)
-                ax.imshow(img, extent=extent, transform=ccrs.PlateCarree())
+                # img = Image.open(cache_file)
+                # ax.imshow(img, extent=extent, transform=ccrs.PlateCarree())
 
         else:
             raise ValueError(f"Unsupported basemap mode: {mode}")
