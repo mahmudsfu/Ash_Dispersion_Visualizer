@@ -457,8 +457,7 @@ sidebar = pn.Column(
     pn.Card(pn.Column(download_button, log_link, sizing_mode="stretch_width"),
             title="📁 Downloads & Logs", collapsible=True, sizing_mode="stretch_width"),
     pn.Card(status, title="📢 Status", collapsible=True, sizing_mode="stretch_width"),
-    sizing_mode="stretch_width", width=300
-)
+    sizing_mode="stretch_width")
 
 restore_previous_session()
 
