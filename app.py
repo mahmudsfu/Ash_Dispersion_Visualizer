@@ -502,6 +502,23 @@ process_button = pn.widgets.Button(name="📦 Process ZIP", button_type="primary
 reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 
+download_button = pn.widgets.FileDownload(
+    label="⬇️ Download All Exports",
+    filename="all_exports.zip",
+    button_type="success",
+    callback=lambda: io.BytesIO(
+        open(shutil.make_archive(
+            os.path.join(MEDIA_DIR, "all_exports").replace(".zip", ""),
+            "zip", MEDIA_DIR
+        ), 'rb').read()
+    )
+)
+
+log_link = pn.widgets.FileDownload(
+    label="🪵 View Error Log", file=LOG_FILE,
+    filename="app_errors.log", button_type="warning"
+)
+
 # 3D Sliders
 threshold_slider_3d = pn.widgets.FloatSlider(name='3D Threshold', start=0.0, end=1.0, step=0.05, value=0.1)
 zoom_slider_3d = pn.widgets.IntSlider(name='3D Zoom Level', start=1, end=20, value=19)
