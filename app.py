@@ -467,21 +467,22 @@ pn.template.EditableTemplate(
     main=[tabs],
 ).servable()
  '''
+ 
 import os
 import glob
 import shutil
 import logging
 import panel as pn
 import xarray as xr
-import tempfile
 from types import SimpleNamespace
 from ash_animator.converter import NAMEDataProcessor
 from ash_animator.plot_3dfield_data import Plot_3DField_Data
+from ash_animator.plot_horizontal_data import Plot_Horizontal_Data
 from ash_animator import create_grid
 
 pn.extension()
 
-# ---------------- Setup ----------------
+# Setup local media directory
 MEDIA_DIR = os.path.abspath(os.path.join(".", "name_media"))
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
@@ -490,21 +491,27 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s -
 
 animator_obj = {}
 
-# ---------------- Widgets ----------------
+# Widgets
 file_input = pn.widgets.FileInput(accept=".zip")
 process_button = pn.widgets.Button(name="📦 Process ZIP", button_type="primary")
 reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 
-# Sliders for 3D animation settings
+# 3D Sliders
 threshold_slider_3d = pn.widgets.FloatSlider(name='3D Threshold', start=0.0, end=1.0, step=0.05, value=0.1)
 zoom_slider_3d = pn.widgets.IntSlider(name='3D Zoom Level', start=1, end=20, value=19)
-cmap_select_3d = pn.widgets.Select(name='3D Colormap', options=["viridis", "plasma", "rainbow"])
 fps_slider_3d = pn.widgets.IntSlider(name='3D FPS', start=1, end=10, value=2)
-altitude_slider = pn.widgets.IntSlider(name='Ash Altitude Level (index)', start=0, end=15, value=1)
+altitude_slider = pn.widgets.IntSlider(name='Ash Altitude (Index)', start=0, end=15, value=1)
+cmap_select_3d = pn.widgets.Select(name='3D Colormap', options=["viridis", "plasma", "rainbow"])
+
+# 2D Sliders
+threshold_slider_2d = pn.widgets.FloatSlider(name='2D Threshold', start=0.0, end=1.0, step=0.01, value=0.005)
+zoom_slider_2d = pn.widgets.IntSlider(name='2D Zoom Level', start=1, end=20, value=19)
+fps_slider_2d = pn.widgets.IntSlider(name='2D FPS', start=1, end=10, value=2)
+cmap_select_2d = pn.widgets.Select(name='2D Colormap', options=["viridis", "plasma", "rainbow"])
 
 # Live log viewer
-live_log_output = pn.pane.Markdown("📜 Log output will appear here...", sizing_mode="stretch_width", height=250)
+live_log_output = pn.pane.Markdown("📜 Log output will appear here...", height=250, sizing_mode="stretch_width")
 
 def update_live_log():
     try:
@@ -520,7 +527,7 @@ def update_live_log():
 
 pn.state.add_periodic_callback(update_live_log, period=3000)
 
-# ---------------- Core Functions ----------------
+# Core Functions
 def process_zip(event=None):
     try:
         status.object = "📥 Reading ZIP input..."
@@ -529,154 +536,153 @@ def process_zip(event=None):
             zip_path = os.path.join(MEDIA_DIR, file_input.filename)
             with open(zip_path, "wb") as f:
                 f.write(file_input.value)
-            status.object = "✅ ZIP uploaded and saved."
-            logging.info(f"ZIP saved to: {zip_path}")
         else:
             zip_path = os.path.join(MEDIA_DIR, "default_model.zip")
             if not os.path.exists(zip_path):
-                zip_path = "default_model.zip"
-            if not os.path.exists(zip_path):
                 status.object = "❌ No ZIP uploaded and default_model.zip not found."
-                logging.warning("No ZIP uploaded and no default_model.zip found.")
                 return
-            status.object = "📦 Using default_model.zip"
-            logging.info("Using fallback ZIP: default_model.zip")
-
         output_dir = os.path.join(MEDIA_DIR, "ash_output")
         shutil.rmtree(output_dir, ignore_errors=True)
         os.makedirs(output_dir, exist_ok=True)
-        logging.info(f"Output directory ready at: {output_dir}")
 
-        status.object = "⚙️ Running NAMEDataProcessor..."
         processor = NAMEDataProcessor(output_root=output_dir)
         processor.batch_process_zip(zip_path)
 
-        status.object = "📡 Loading 3D datasets..."
         animator_obj["3d"] = []
         for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc"))):
             with xr.open_dataset(fp) as ds:
                 animator_obj["3d"].append(ds.load())
-        logging.info(f"Loaded {len(animator_obj['3d'])} 3D files.")
+
+        animator_obj["2d"] = []
+        for fp in sorted(glob.glob(os.path.join(output_dir, "horizontal", "*.nc"))):
+            with xr.open_dataset(fp) as ds:
+                animator_obj["2d"].append(ds.load())
 
         with open(os.path.join(MEDIA_DIR, "last_run.txt"), "w") as f:
             f.write(zip_path)
-        logging.info("Session saved to last_run.txt")
 
-        status.object = f"✅ Processing complete. 3D: {len(animator_obj['3d'])}"
+        status.object = f"✅ Loaded 3D: {len(animator_obj['3d'])} | 2D: {len(animator_obj['2d'])}"
     except Exception as e:
-        logging.exception("Error during ZIP processing")
+        logging.exception("ZIP processing error")
         status.object = f"❌ Processing failed: {e}"
 
 def reset_app(event=None):
     try:
         status.object = "🔄 Resetting app..."
-        logging.info("Resetting app and clearing session.")
         animator_obj.clear()
         file_input.value = None
-
         for folder in ["ash_output", "3D", "2D"]:
             shutil.rmtree(os.path.join(MEDIA_DIR, folder), ignore_errors=True)
-        if os.path.exists(os.path.join(MEDIA_DIR, "last_run.txt")):
+        try:
             os.remove(os.path.join(MEDIA_DIR, "last_run.txt"))
-
-        status.object = "✅ App has been reset."
-        logging.info("Reset complete.")
+        except:
+            pass
+        status.object = "✅ App reset."
     except Exception as e:
-        logging.exception("Error during reset")
-        status.object = f"❌ Failed to reset app: {e}"
+        logging.exception("Reset error")
+        status.object = f"❌ Reset failed: {e}"
 
 def restore_previous_session():
     try:
         state_file = os.path.join(MEDIA_DIR, "last_run.txt")
-        if not os.path.exists(state_file):
-            status.object = "ℹ️ No previous session found."
-            return
+        if os.path.exists(state_file):
+            with open(state_file) as f:
+                zip_path = f.read().strip()
+            output_dir = os.path.join(MEDIA_DIR, "ash_output")
 
-        with open(state_file) as f:
-            zip_path = f.read().strip()
-        output_dir = os.path.join(MEDIA_DIR, "ash_output")
-        os.makedirs(output_dir, exist_ok=True)
+            animator_obj["3d"] = []
+            for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc"))):
+                with xr.open_dataset(fp) as ds:
+                    animator_obj["3d"].append(ds.load())
 
-        animator_obj["3d"] = []
-        for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc"))):
-            with xr.open_dataset(fp) as ds:
-                animator_obj["3d"].append(ds.load())
+            animator_obj["2d"] = []
+            for fp in sorted(glob.glob(os.path.join(output_dir, "horizontal", "*.nc"))):
+                with xr.open_dataset(fp) as ds:
+                    animator_obj["2d"].append(ds.load())
 
-        status.object = f"✅ Restored from: {os.path.basename(zip_path)}"
+            status.object = f"✅ Restored session: {os.path.basename(zip_path)}"
     except Exception as e:
-        logging.exception("Error restoring session")
-        status.object = f"❌ Could not restore session: {e}"
+        logging.exception("Restore error")
+        status.object = f"❌ Restore failed: {e}"
 
 def build_animator_3d():
     ds = animator_obj["3d"]
     attrs = ds[0].attrs
     lons, lats, grid = create_grid(attrs)
-    return SimpleNamespace(
-        datasets=ds,
-        levels=ds[0].altitude.values,
-        lons=lons,
-        lats=lats,
-        lon_grid=grid[0],
-        lat_grid=grid[1],
-    )
+    return SimpleNamespace(datasets=ds, levels=ds[0].altitude.values,
+                           lons=lons, lats=lats, lon_grid=grid[0], lat_grid=grid[1])
+
+def build_animator_2d():
+    ds = animator_obj["2d"]
+    lat_grid, lon_grid = xr.broadcast(ds[0]["latitude"], ds[0]["longitude"])
+    return SimpleNamespace(datasets=ds, lats=ds[0]["latitude"].values,
+                           lons=ds[0]["longitude"].values,
+                           lat_grid=lat_grid.values, lon_grid=lon_grid.values)
 
 def plot_z_level():
     try:
-        status.object = "🛠 Building 3D animator..."
+        status.object = "🎞 Generating Z-Level animation..."
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
         os.makedirs(out, exist_ok=True)
-
-        status.object = "🎞 Creating Z-Level animation..."
-        Plot_3DField_Data(
-            animator, out,
-            cmap_select_3d.value,
-            threshold_slider_3d.value,
-            zoom_slider_3d.value,
-            fps_slider_3d.value
-        ).plot_single_z_level(
-            altitude_slider.value,
-            f"ash_altitude{altitude_slider.value}km.gif"
-        )
-
+        Plot_3DField_Data(animator, out, cmap_select_3d.value,
+                          threshold_slider_3d.value, zoom_slider_3d.value,
+                          fps_slider_3d.value).plot_single_z_level(
+                              altitude_slider.value, f"ash_altitude{altitude_slider.value}km.gif")
         status.object = "✅ Z-Level animation created."
-        logging.info("Z-Level animation completed.")
     except Exception as e:
-        logging.exception("Error in plot_z_level")
-        status.object = f"❌ Error in Z-Level animation: {e}"
+        logging.exception("3D plot error")
+        status.object = f"❌ 3D animation failed: {e}"
 
-# ---------------- Layout ----------------
+def plot_2d_field(field):
+    try:
+        status.object = f"🌍 Generating 2D animation: {field}"
+        animator = build_animator_2d()
+        out = os.path.join(MEDIA_DIR, "2D")
+        os.makedirs(out, exist_ok=True)
+        Plot_Horizontal_Data(animator, out, cmap_select_2d.value, fps_slider_2d.value,
+                             include_metadata=True, threshold=threshold_slider_2d.value,
+                             zoom_level=zoom_slider_2d.value,
+                             zoom_width_deg=6.0, zoom_height_deg=6.0,
+                             static_frame_export=True).plot_single_field_over_time(
+                                 field, f"{field}.gif")
+        status.object = f"✅ 2D field '{field}' animation created."
+    except Exception as e:
+        logging.exception(f"2D plot error: {field}")
+        status.object = f"❌ 2D animation failed: {e}"
+
+# Attach buttons
 process_button.on_click(process_zip)
 reset_button.on_click(reset_app)
 
-# 3D Controls tab
+# ---------------- Tabs ----------------
 tab3d = pn.Column(
     pn.pane.Markdown("### 🎛 3D Animation Controls"),
-    threshold_slider_3d,
-    zoom_slider_3d,
-    fps_slider_3d,
-    altitude_slider,
-    cmap_select_3d,
+    threshold_slider_3d, zoom_slider_3d, fps_slider_3d, altitude_slider, cmap_select_3d,
     pn.widgets.Button(name="🎞 Generate Z-Level Animation", button_type="primary", on_click=lambda e: tab3d.append(plot_z_level()))
 )
 
-# Logs tab
-logs_tab = pn.Column(
-    pn.pane.Markdown("### 📜 Application Logs"),
-    live_log_output
+tab2d = pn.Column(
+    pn.pane.Markdown("### 🧭 2D Animation Controls"),
+    threshold_slider_2d, zoom_slider_2d, fps_slider_2d, cmap_select_2d,
+    pn.widgets.Button(name="🌫 Air Concentration", button_type="primary", on_click=lambda e: tab2d.append(plot_2d_field("air_concentration"))),
+    pn.widgets.Button(name="🌧 Dry Deposition Rate", button_type="primary", on_click=lambda e: tab2d.append(plot_2d_field("dry_deposition_rate"))),
+    pn.widgets.Button(name="💧 Wet Deposition Rate", button_type="primary", on_click=lambda e: tab2d.append(plot_2d_field("wet_deposition_rate"))),
 )
 
-# Help tab
+logs_tab = pn.Column(pn.pane.Markdown("### 📜 Logs"), live_log_output)
+
 help_tab = pn.Column(pn.pane.Markdown("""
 ### ❓ Help
 
-1. Upload a NAME model ZIP.
-2. Adjust 3D settings and click generate.
-3. Use logs for debugging if needed.
+1. Upload a NAME model ZIP file.
+2. Use 3D or 2D tab to adjust settings and generate animations.
+3. View logs in the Logs tab if issues occur.
 """))
 
 tabs = pn.Tabs(
     ("🧱 3D Field", tab3d),
+    ("🌍 2D Field", tab2d),
     ("📜 Logs", logs_tab),
     ("❓ Help", help_tab)
 )
@@ -690,7 +696,8 @@ sidebar = pn.Column(
 restore_previous_session()
 
 pn.template.FastListTemplate(
-    title="NAME Visualizer",
+    title="NAME Visualizer Dashboard",
     sidebar=sidebar,
     main=[tabs]
 ).servable()
+
