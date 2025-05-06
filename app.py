@@ -1,46 +1,4 @@
-
 import os
-import tempfile
-
-def get_writable_dir(name, subfolder=None):
-    """
-    Tries multiple locations and returns the first writable path.
-    If all fail, returns None.
-    """
-    candidates = [
-        os.path.join("/code", name),
-        os.path.join(tempfile.gettempdir(), name)
-    ]
-    for path in candidates:
-        if subfolder:
-            path = os.path.join(path, subfolder)
-        try:
-            os.makedirs(path, exist_ok=True)
-            return path
-        except PermissionError:
-            continue
-    return None
-
-# Try to assign a safe cache root
-CACHE_ROOT = get_writable_dir("my_app_cache") or tempfile.gettempdir()
-
-# Apply safe directories for matplotlib and others
-matplotlib_dir = get_writable_dir("my_app_cache", "matplotlib")
-if matplotlib_dir:
-    os.environ["MPLCONFIGDIR"] = matplotlib_dir
-
-cartopy_dir = get_writable_dir("my_app_cache", "cartopy")
-if cartopy_dir:
-    os.environ["CARTOPY_CACHE_DIR"] = cartopy_dir
-    os.environ["CARTOPY_USER_BACKGROUNDS"] = cartopy_dir
-
-xdg_cache = get_writable_dir("my_app_cache", "contextily")
-if xdg_cache:
-    os.environ["XDG_CACHE_HOME"] = xdg_cache
-
-
-
-
 import glob
 import shutil
 import io
@@ -56,12 +14,9 @@ from ash_animator.plot_3dfield_data import Plot_3DField_Data
 from ash_animator.plot_horizontal_data import Plot_Horizontal_Data
 from ash_animator import create_grid
 
-
 pn.extension()
 
-import tempfile
-
-MEDIA_DIR = os.environ.get("NAME_MEDIA_DIR", os.path.join(tempfile.gettempdir(), "name_media"))
+MEDIA_DIR = "media"
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
 # Logging setup
@@ -115,19 +70,11 @@ def process_zip(event=None):
     else:
         zip_path = os.path.join(MEDIA_DIR, "default_model.zip")
         if not os.path.exists(zip_path):
-            zip_path = "default_model.zip"  # fallback to local directory
-        if not os.path.exists(zip_path):
             status.object = "❌ No ZIP uploaded and default_model.zip not found."
             return
         status.object = "📦 Using default_model.zip"
 
-
-    try:
-        output_dir = os.path.join("./", "ash_output")
-        os.makedirs(output_dir, exist_ok=True)
-    except PermissionError:
-        output_dir = os.path.join(tempfile.gettempdir(), "name_output")
-        os.makedirs(output_dir, exist_ok=True)
+    output_dir = os.path.join("./", "ash_output")
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
@@ -138,10 +85,6 @@ def process_zip(event=None):
         # animator_obj["3d"] = [xr.open_dataset(fp).load()
         #                       for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc")))]
         
-        # animator_obj["3d"] = []
-        # for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc"))):
-        #     with xr.open_dataset(fp) as ds:
-        #         animator_obj["3d"].append(ds.load())
         animator_obj["3d"] = []
         for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc"))):
             with xr.open_dataset(fp) as ds:
@@ -182,12 +125,7 @@ def restore_previous_session():
             with open(state_file) as f:
                 zip_path = f.read().strip()
             if os.path.exists(zip_path):
-                try:
-                    output_dir = os.path.join("./", "ash_output")
-                    os.makedirs(output_dir, exist_ok=True)
-                except PermissionError:
-                    output_dir = os.path.join(tempfile.gettempdir(), "name_output")
-                    os.makedirs(output_dir, exist_ok=True)
+                output_dir = os.path.join("./", "ash_output")
 
                 animator_obj["3d"] = []
                 for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc"))):
@@ -311,99 +249,35 @@ def human_readable_size(size):
         size /= 1024
     return f"{size:.1f} TB"
 
-# def generate_output_gallery(base_folder):
-#     grouped = defaultdict(lambda: defaultdict(list))
-#     for root, _, files in os.walk(os.path.join(MEDIA_DIR, base_folder)):
-#         for file in files:
-#             ext = os.path.splitext(file)[1].lower()
-#             subfolder = os.path.relpath(root, MEDIA_DIR)
-#             grouped[subfolder][ext].append(os.path.join(root, file))
-
-#     folder_tabs = []
-#     for subfolder, ext_files in sorted(grouped.items()):
-#         type_tabs = []
-#         for ext, paths in sorted(ext_files.items()):
-#             previews = []
-#             for path in sorted(paths, key=os.path.getmtime, reverse=True):
-#                 size = human_readable_size(os.path.getsize(path))
-#                 mod = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M")
-#                 title = f"**{os.path.basename(path)}**\\n_{size}, {mod}_"
-#                 download = pn.widgets.FileDownload(label="⬇", file=path, filename=os.path.basename(path), width=60)
-#                 if ext in [".gif", ".png", ".jpg", ".jpeg"]:
-#                     preview = pn.pane.Image(path, width=320)
-#                 else:
-#                     with open(path, "r", errors="ignore") as f:
-#                         content = f.read(2048)
-#                     preview = pn.pane.PreText(content, width=320)
-#                 card = pn.Card(pn.pane.Markdown(title), preview, pn.Row(download), width=360)
-#                 previews.append(card)
-#             type_tabs.append((ext.upper(), pn.GridBox(*previews, ncols=2)))
-#         folder_tabs.append((subfolder, pn.Tabs(*type_tabs)))
-#     return pn.Tabs(*folder_tabs)
-
-
 def generate_output_gallery(base_folder):
-    preview_container = pn.Column(width=640, height=550)
-    preview_container.append(pn.pane.Markdown("👈 Click a thumbnail to preview"))
-    folder_cards = []
-
-    def make_preview(file_path):
-        ext = os.path.splitext(file_path)[1].lower()
-        title = pn.pane.Markdown(f"### {os.path.basename(file_path)}")
-        download_button = pn.widgets.FileDownload(file=file_path, filename=os.path.basename(file_path),
-                                                  label="⬇ Download", button_type="success", width=150)
-
-        if ext in [".gif", ".png", ".jpg", ".jpeg"]:
-            content = pn.pane.Image(file_path, width=640, height=450, sizing_mode="fixed")
-        else:
-            try:
-                with open(file_path, 'r', errors="ignore") as f:
-                    text = f.read(2048)
-                content = pn.pane.PreText(text, width=640, height=450)
-            except:
-                content = pn.pane.Markdown("*Unable to preview this file.*")
-
-        return pn.Column(title, content, download_button)
-
-    grouped = defaultdict(list)
+    grouped = defaultdict(lambda: defaultdict(list))
     for root, _, files in os.walk(os.path.join(MEDIA_DIR, base_folder)):
-        for file in sorted(files):
-            full_path = os.path.join(root, file)
-            if not os.path.exists(full_path):
-                continue
-            rel_folder = os.path.relpath(root, os.path.join(MEDIA_DIR, base_folder))
-            grouped[rel_folder].append(full_path)
+        for file in files:
+            ext = os.path.splitext(file)[1].lower()
+            subfolder = os.path.relpath(root, MEDIA_DIR)
+            grouped[subfolder][ext].append(os.path.join(root, file))
 
-    for folder, file_paths in sorted(grouped.items()):
-        thumbnails = []
-        for full_path in file_paths:
-            filename = os.path.basename(full_path)
-            ext = os.path.splitext(full_path)[1].lower()
-
-            if ext in [".gif", ".png", ".jpg", ".jpeg"]:
-                img = pn.pane.Image(full_path, width=140, height=100)
-            else:
-                img = pn.pane.Markdown("📄", width=140, height=100)
-
-            view_button = pn.widgets.Button(name="👁", width=40, height=30, button_type="primary")
-
-            def click_handler(path=full_path):
-                def inner_click(event):
-                    preview_container[:] = [make_preview(path)]
-                return inner_click
-
-            view_button.on_click(click_handler())
-
-            overlay = pn.Column(pn.Row(pn.Spacer(width=90), view_button), img, width=160)
-            label_md = pn.pane.Markdown(f"**{filename}**", width=140, height=35)
-            thumb_card = pn.Column(overlay, label_md, width=160)
-            thumbnails.append(thumb_card)
-
-        folder_card = pn.Card(pn.GridBox(*thumbnails, ncols=2), title=f"📁 {folder}", width=400, collapsible=True)
-        folder_cards.append(folder_card)
-
-    folder_scroll = pn.Column(*folder_cards, scroll=True, height=600, width=420)
-    return pn.Row(preview_container, pn.Spacer(width=20), folder_scroll)
+    folder_tabs = []
+    for subfolder, ext_files in sorted(grouped.items()):
+        type_tabs = []
+        for ext, paths in sorted(ext_files.items()):
+            previews = []
+            for path in sorted(paths, key=os.path.getmtime, reverse=True):
+                size = human_readable_size(os.path.getsize(path))
+                mod = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M")
+                title = f"**{os.path.basename(path)}**\\n_{size}, {mod}_"
+                download = pn.widgets.FileDownload(label="⬇", file=path, filename=os.path.basename(path), width=60)
+                if ext in [".gif", ".png", ".jpg", ".jpeg"]:
+                    preview = pn.pane.Image(path, width=320)
+                else:
+                    with open(path, "r", errors="ignore") as f:
+                        content = f.read(2048)
+                    preview = pn.pane.PreText(content, width=320)
+                card = pn.Card(pn.pane.Markdown(title), preview, pn.Row(download), width=360)
+                previews.append(card)
+            type_tabs.append((ext.upper(), pn.GridBox(*previews, ncols=2)))
+        folder_tabs.append((subfolder, pn.Tabs(*type_tabs)))
+    return pn.Tabs(*folder_tabs)
 
 def update_media_tabs():
     media_tab_2d.objects[:] = [generate_output_gallery("2D")]
@@ -416,7 +290,6 @@ media_tab = pn.Tabs(
     ("2D Outputs", media_tab_2d),
     ("3D Outputs", media_tab_3d)
 )
-
 
 tab3d = pn.Column(
     threshold_slider_3d, zoom_slider_3d, fps_slider_3d, Altitude_slider, cmap_select_3d,
@@ -433,74 +306,13 @@ tab2d = pn.Column(
     pn.widgets.Button(name="💧 Animate Wet Deposition Rate", button_type="primary", on_click=lambda e: tab2d.append(plot_2d_field("wet_deposition_rate"))),
 )
 
-help_tab = pn.Column(pn.pane.Markdown("""
-## ❓ How to Use the NAME Ash Visualizer
-
-This dashboard allows users to upload and visualize outputs from the NAME ash dispersion model.
-
-### 🧭 Workflow
-1. **Upload ZIP** containing NetCDF files from the NAME model.
-2. Use **3D and 2D tabs** to configure and generate animations.
-3. Use **Media Viewer** to preview and download results.
-
-### 🧳 ZIP Structure
-```
-## 🗂 How Uploaded ZIP is Processed
-
-```text
-┌────────────────────────────────────────────┐
-│           Uploaded ZIP (.zip)              │
-│  (e.g. Taal_273070_20200112_scenario_*.zip)│
-└────────────────────────────────────────────┘
-                    │
-                    ▼
-      ┌───────────────────────────────┐
-      │ Contains: raw .txt outputs    │
-      │  - AQOutput_3DField_*.txt     │
-      │  - AQOutput_horizontal_*.txt  │
-      └───────────────────────────────┘
-                    │
-                    ▼
-  ┌────────────────────────────────────────┐
-  │   NAMEDataProcessor.batch_process_zip()│
-  └────────────────────────────────────────┘
-                    │
-                    ▼
-      ┌─────────────────────────────┐
-      │   Converts to NetCDF files  │
-      │     - ash_output/3D/*.nc    │
-      │     - ash_output/horizontal/*.nc │
-      └─────────────────────────────┘
-                    │
-                    ▼
-   ┌─────────────────────────────────────┐
-   │ View & animate in 3D/2D tabs        │
-   │ Download results in Media Viewer    │
-   └─────────────────────────────────────┘
-
-```
-
-### 📢 Tips
-- Reset the app with 🔄 if needed.
-- View logs if an error occurs.
-- Outputs are temporary per session.
-""", sizing_mode="stretch_width"))
-
 tabs = pn.Tabs(
     ("🧱 3D Field", tab3d),
     ("🌍 2D Field", tab2d),
-    ("📁 Media Viewer", media_tab),
-    ("❓ Help", help_tab)
+    ("📁 Media Viewer", media_tab)
 )
 
-sidebar = pn.Column(
-    pn.pane.Markdown("## 🌋 NAME Ash Visualizer", sizing_mode="stretch_width"),
-    pn.Card(pn.Column(file_input, process_button, reset_button, sizing_mode="stretch_width"),
-            title="📂 File Upload & Processing", collapsible=True, sizing_mode="stretch_width"),
-    pn.Card(pn.Column(download_button, log_link, sizing_mode="stretch_width"),
-            title="📁 Downloads & Logs", collapsible=True, sizing_mode="stretch_width"),
-    pn.Card(status, title="📢 Status", collapsible=True, sizing_mode="stretch_width"),
-    sizing_mode="stretch_width")
+sidebar = pn.Column("## 🌋 NAME Ash Visualizer", file_input, process_button, reset_button, download_button, log_link, status)
 
 restore_previous_session()
 
@@ -509,4 +321,3 @@ pn.template.FastListTemplate(
     sidebar=sidebar,
     main=[tabs],
 ).servable()
-

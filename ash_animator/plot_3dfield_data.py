@@ -11,7 +11,6 @@ from .interpolation import interpolate_grid
 from .basemaps import draw_etopo_basemap
 import imageio.v2 as imageio
 import shutil
-import tempfile
 
 class Plot_3DField_Data:
     
@@ -71,13 +70,7 @@ class Plot_3DField_Data:
                  include_metadata=True, threshold=0.1,
                  zoom_width_deg=6.0, zoom_height_deg=6.0, zoom_level=7, basemap_type="basemap"):
         self.animator = animator
-        
-        self.output_dir = os.path.abspath(
-            os.path.join(
-                os.environ.get("NAME_OUTPUT_DIR", tempfile.gettempdir()),
-                output_dir
-            )
-        )
+        self.output_dir = os.path.abspath(os.path.join(os.getcwd(), output_dir))
         os.makedirs(self.output_dir, exist_ok=True)
         self.cmap = cmap
         self.fps = fps
@@ -467,6 +460,6 @@ class Plot_3DField_Data:
                 formatter = mticker.FuncFormatter(lambda x, _: f'{x:.2g}')
                 cbar.ax.yaxis.set_major_formatter(formatter)
                 frame_path = os.path.join(z_dir, f"frame_{t+1:04d}.jpg")
-                plt.savefig(frame_path, bbox_inches='tight')
+                plt.savefig(frame_path, dpi=150, bbox_inches='tight')
                 plt.close(fig)
                 print(f"📸 Saved {frame_path}")

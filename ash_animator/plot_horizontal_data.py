@@ -9,23 +9,14 @@ import cartopy.io.shapereader as shpreader
 from adjustText import adjust_text
 from ash_animator.interpolation import interpolate_grid
 from ash_animator.basemaps import draw_etopo_basemap
-import tempfile
 
 class Plot_Horizontal_Data:
     def __init__(self, animator, output_dir="plots", cmap="rainbow", fps=2,
                  include_metadata=True, threshold=0.1,
                  zoom_width_deg=6.0, zoom_height_deg=6.0, zoom_level=7, static_frame_export=False):
         self.animator = animator
-
-        # Set a writable, absolute output directory
-        self.output_dir = os.path.abspath(
-            os.path.join(
-                os.environ.get("NAME_OUTPUT_DIR", tempfile.gettempdir()),
-                output_dir
-            )
-        )
+        self.output_dir = os.path.abspath(os.path.join(os.getcwd(), output_dir))
         os.makedirs(self.output_dir, exist_ok=True)
-        
         self.cmap = cmap
         self.fps = fps
         self.include_metadata = include_metadata
@@ -183,7 +174,7 @@ class Plot_Horizontal_Data:
 
            # Inside update() function:
             if not hasattr(update, "colorbar"):
-                unit_label =  f"{field}:({self.animator.datasets[0][field].attrs.get('units', field)})" #self.animator.datasets[0][field].attrs.get('units', field)
+                unit_label =  f"{field}:({self.animator.datasets[0][field].attrs.get("units", field)})" #self.animator.datasets[0][field].attrs.get("units", field)
                 update.colorbar = fig.colorbar(c, ax=[ax1, ax2], orientation='vertical', label=unit_label)
                 formatter = mticker.FuncFormatter(lambda x, _: f'{x:.2g}')
                 update.colorbar.ax.yaxis.set_major_formatter(formatter)
@@ -203,7 +194,7 @@ class Plot_Horizontal_Data:
                 frame_folder = os.path.join(self.output_dir, "frames", field)
             os.makedirs(frame_folder, exist_ok=True)
             frame_path = os.path.join(frame_folder, f"frame_{t+1:04d}.jpg")
-            plt.savefig(frame_path, bbox_inches='tight')
+            plt.savefig(frame_path, dpi=300, bbox_inches='tight')
             print(f"🖼️ Saved static frame: {frame_path}")
                     
             return []
