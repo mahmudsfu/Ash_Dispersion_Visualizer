@@ -468,5 +468,5 @@ class Plot_3DField_Data:
                 cbar.ax.yaxis.set_major_formatter(formatter)
                 frame_path = os.path.join(z_dir, f"frame_{t+1:04d}.jpg")
                 plt.savefig(frame_path, bbox_inches='tight')
-                plt.close(fig)
+                plt.close()
                 print(f"📸 Saved {frame_path}")
