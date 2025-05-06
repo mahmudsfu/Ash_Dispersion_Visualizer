@@ -2,22 +2,42 @@
 import os
 import tempfile
 
-# Writable cache directory
-CACHE_ROOT = os.path.join(tempfile.gettempdir(), "my_app_cache")
-os.makedirs(CACHE_ROOT, exist_ok=True)
+def get_writable_dir(name, subfolder=None):
+    """
+    Tries multiple locations and returns the first writable path.
+    If all fail, returns None.
+    """
+    candidates = [
+        os.path.join("/code", name),
+        os.path.join(tempfile.gettempdir(), name)
+    ]
+    for path in candidates:
+        if subfolder:
+            path = os.path.join(path, subfolder)
+        try:
+            os.makedirs(path, exist_ok=True)
+            return path
+        except PermissionError:
+            continue
+    return None
 
-# Matplotlib cache directory (to avoid /.config write)
-os.environ["MPLCONFIGDIR"] = os.path.join(CACHE_ROOT, "matplotlib")
-os.makedirs(os.environ["MPLCONFIGDIR"], exist_ok=True)
+# Try to assign a safe cache root
+CACHE_ROOT = get_writable_dir("my_app_cache") or tempfile.gettempdir()
 
-# Cartopy cache directory (avoid /.local)
-os.environ["CARTOPY_USER_BACKGROUNDS"] = os.path.join(CACHE_ROOT, "cartopy")
-os.environ["CARTOPY_CACHE_DIR"] = os.path.join(CACHE_ROOT, "cartopy")
-os.makedirs(os.environ["CARTOPY_CACHE_DIR"], exist_ok=True)
+# Apply safe directories for matplotlib and others
+matplotlib_dir = get_writable_dir("my_app_cache", "matplotlib")
+if matplotlib_dir:
+    os.environ["MPLCONFIGDIR"] = matplotlib_dir
 
-# Optional: contextily tile cache
-os.environ["XDG_CACHE_HOME"] = os.path.join(CACHE_ROOT, "contextily")
-os.makedirs(os.environ["XDG_CACHE_HOME"], exist_ok=True)
+cartopy_dir = get_writable_dir("my_app_cache", "cartopy")
+if cartopy_dir:
+    os.environ["CARTOPY_CACHE_DIR"] = cartopy_dir
+    os.environ["CARTOPY_USER_BACKGROUNDS"] = cartopy_dir
+
+xdg_cache = get_writable_dir("my_app_cache", "contextily")
+if xdg_cache:
+    os.environ["XDG_CACHE_HOME"] = xdg_cache
+
 
 
 
