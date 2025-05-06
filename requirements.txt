@@ -9,5 +9,7 @@ cartopy
 contextily
 geopy
 adjustText
-basemap
+basemap-data-hires
 imageio
+
+#basemap
