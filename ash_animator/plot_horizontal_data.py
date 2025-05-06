@@ -174,7 +174,7 @@ class Plot_Horizontal_Data:
 
            # Inside update() function:
             if not hasattr(update, "colorbar"):
-                unit_label =  f"{field}:({self.animator.datasets[0][field].attrs.get("units", field)})" #self.animator.datasets[0][field].attrs.get("units", field)
+                unit_label =  f"{field}:({self.animator.datasets[0][field].attrs.get('units', field)})" #self.animator.datasets[0][field].attrs.get("units", field)
                 update.colorbar = fig.colorbar(c, ax=[ax1, ax2], orientation='vertical', label=unit_label)
                 formatter = mticker.FuncFormatter(lambda x, _: f'{x:.2g}')
                 update.colorbar.ax.yaxis.set_major_formatter(formatter)
