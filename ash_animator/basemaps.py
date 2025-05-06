@@ -1,4 +1,5 @@
 import os
+import tempfile
 import hashlib
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -9,46 +10,30 @@ import cartopy.feature as cfeature
 
 def get_cache_dir(app_name):
     """
-    Returns a writable cache directory path depending on the OS.
-    Linux: tries /code/<app>_cache, falls back to /tmp/<app>_cache
-    Windows: uses LOCALAPPDATA/<app>_cache
+    Try to create a cache directory under ./code first.
+    If it fails (e.g., due to permissions), fallback to system temp directory.
     """
-    if os.name == 'nt':
-        # Windows
-        base_dir = os.getenv('LOCALAPPDATA', os.getcwd())
-    else:
-        # Unix
-        base_dir = "/code"
-        try:
-            test_path = os.path.join(base_dir, f"{app_name}_cache")
-            os.makedirs(test_path, exist_ok=True)
-            os.chmod(test_path, 0o777)
-            return test_path
-        except PermissionError:
-            print(f"[PermissionError] Cannot use {base_dir}, falling back to /tmp.")
-            base_dir = "/tmp"
-    
-    cache_path = os.path.join(base_dir, f"{app_name}_cache")
-    os.makedirs(cache_path, exist_ok=True)
-    return cache_path
+    try:
+        preferred = os.path.join("/code", f"{app_name}_cache")
+        os.makedirs(preferred, exist_ok=True)
+        return preferred
+    except PermissionError:
+        fallback = os.path.join(tempfile.gettempdir(), f"{app_name}_cache")
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
 
-# Setup cache directories
+# Define and create cache directories
 CTX_TILE_CACHE_DIR = get_cache_dir("contextily")
 BASEMAP_TILE_CACHE_DIR = get_cache_dir("basemap")
 CARTOPY_CACHE_DIR = get_cache_dir("cartopy")
 
-# Set Cartopy environment variables
+# Set environment variables for Cartopy
 os.environ["CARTOPY_USER_BACKGROUNDS"] = CARTOPY_CACHE_DIR
 os.environ["CARTOPY_CACHE_DIR"] = CARTOPY_CACHE_DIR
 
 def draw_etopo_basemap(ax, mode="basemap", zoom=11):
     """
-    Draws a basemap onto a Cartopy GeoAxes object.
-    Parameters
-    ----------
-    ax : Cartopy GeoAxes
-    mode : 'stock' | 'contextily' | 'basemap'
-    zoom : int (contextily zoom level)
+    Draws a background basemap image on a Cartopy GeoAxes.
     """
     try:
         if mode == "stock":
