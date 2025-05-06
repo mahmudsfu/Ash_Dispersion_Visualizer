@@ -69,7 +69,7 @@ class Plot_3DField_Data:
     """
     def __init__(self, animator, output_dir="plots", cmap="rainbow", fps=2,
                  include_metadata=True, threshold=0.1,
-                 zoom_width_deg=6.0, zoom_height_deg=6.0, zoom_level=7, basemap_type="basemap"):
+                 zoom_width_deg=6.0, zoom_height_deg=6.0, zoom_level=7, basemap_type="stock"):
         self.animator = animator
         
         self.output_dir = os.path.abspath(

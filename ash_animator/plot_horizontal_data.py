@@ -115,7 +115,7 @@ class Plot_Horizontal_Data:
 
 
     def _plot_frame(self, ax, data, lons, lats, title, levels, scale_label, proj):
-        self._draw_etopo_basemap(ax, mode='basemap', zoom=self.zoom_level)
+        self._draw_etopo_basemap(ax, mode='stock', zoom=self.zoom_level)
         c = ax.contourf(lons, lats, data, levels=levels, cmap=self.cmap, alpha=0.6, transform=proj)
         ax.set_title(title)
         ax.set_extent([lons.min(), lons.max(), lats.min(), lats.max()])
