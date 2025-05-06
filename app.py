@@ -441,7 +441,7 @@ This dashboard allows users to upload and visualize outputs from the NAME ash di
 - Reset the app with 🔄 if needed.
 - View logs if an error occurs.
 - Outputs are temporary per session.
-""", sizing_mode="stretch_width", width=800))
+""", sizing_mode="stretch_width"))
 
 tabs = pn.Tabs(
     ("🧱 3D Field", tab3d),
@@ -461,7 +461,7 @@ sidebar = pn.Column(
 
 restore_previous_session()
 
-pn.template.FastListTemplate(
+pn.template.EditableTemplate(
     title="NAME Visualizer Dashboard",
     sidebar=sidebar,
     main=[tabs],
