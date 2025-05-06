@@ -506,7 +506,7 @@ status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 threshold_slider_3d = pn.widgets.FloatSlider(name='3D Threshold', start=0.0, end=1.0, step=0.05, value=0.1)
 zoom_slider_3d = pn.widgets.IntSlider(name='3D Zoom Level', start=1, end=20, value=19)
 fps_slider_3d = pn.widgets.IntSlider(name='3D FPS', start=1, end=10, value=2)
-altitude_slider = pn.widgets.IntSlider(name='Ash Altitude (Index)', start=0, end=15, value=1)
+Altitude_slider = pn.widgets.IntSlider(name='Ash Altitude (Index)', start=0, end=15, value=1)
 cmap_select_3d = pn.widgets.Select(name='3D Colormap', options=["viridis", "plasma", "rainbow"])
 
 # 2D Sliders
