@@ -16,7 +16,8 @@ class Plot_Horizontal_Data:
                  include_metadata=True, threshold=0.1,
                  zoom_width_deg=6.0, zoom_height_deg=6.0, zoom_level=7, static_frame_export=False):
         self.animator = animator
-                
+
+        # Set a writable, absolute output directory
         self.output_dir = os.path.abspath(
             os.path.join(
                 os.environ.get("NAME_OUTPUT_DIR", tempfile.gettempdir()),
@@ -24,6 +25,7 @@ class Plot_Horizontal_Data:
             )
         )
         os.makedirs(self.output_dir, exist_ok=True)
+        
         self.cmap = cmap
         self.fps = fps
         self.include_metadata = include_metadata
