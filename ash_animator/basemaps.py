@@ -85,7 +85,7 @@ def draw_etopo_basemap(ax, mode="basemap", zoom=11):
                 m = Basemap(projection='cyl',
                             llcrnrlon=extent[0], urcrnrlon=extent[1],
                             llcrnrlat=extent[2], urcrnrlat=extent[3],
-                            resolution='f', ax=temp_ax)
+                            resolution='c', ax=temp_ax)
                 m.shadedrelief()
 
                 temp_fig.savefig(cache_file, dpi=300, bbox_inches='tight', pad_inches=0)
