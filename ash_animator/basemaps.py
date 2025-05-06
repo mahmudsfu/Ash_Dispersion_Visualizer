@@ -10,30 +10,36 @@ import cartopy.feature as cfeature
 
 def get_cache_dir(app_name):
     """
-    Try to create a cache directory under ./code first.
-    If it fails (e.g., due to permissions), fallback to system temp directory.
+    Attempt to create a writable cache directory.
+    Return None if both preferred and fallback locations fail.
     """
     try:
         preferred = os.path.join("/code", f"{app_name}_cache")
         os.makedirs(preferred, exist_ok=True)
         return preferred
-    except PermissionError:
-        fallback = os.path.join(tempfile.gettempdir(), f"{app_name}_cache")
-        os.makedirs(fallback, exist_ok=True)
-        return fallback
+    except Exception:
+        try:
+            fallback = os.path.join(tempfile.gettempdir(), f"{app_name}_cache")
+            os.makedirs(fallback, exist_ok=True)
+            return fallback
+        except Exception:
+            print(f"[Cache Disabled] Could not create cache for {app_name}.")
+            return None
 
-# Define and create cache directories
+# Define cache dirs (may be None)
 CTX_TILE_CACHE_DIR = get_cache_dir("contextily")
 BASEMAP_TILE_CACHE_DIR = get_cache_dir("basemap")
 CARTOPY_CACHE_DIR = get_cache_dir("cartopy")
 
-# Set environment variables for Cartopy
-os.environ["CARTOPY_USER_BACKGROUNDS"] = CARTOPY_CACHE_DIR
-os.environ["CARTOPY_CACHE_DIR"] = CARTOPY_CACHE_DIR
+# Set env vars if cartopy cache dir is usable
+if CARTOPY_CACHE_DIR:
+    os.environ["CARTOPY_USER_BACKGROUNDS"] = CARTOPY_CACHE_DIR
+    os.environ["CARTOPY_CACHE_DIR"] = CARTOPY_CACHE_DIR
 
 def draw_etopo_basemap(ax, mode="basemap", zoom=11):
     """
     Draws a background basemap image on a Cartopy GeoAxes.
+    Falls back to simple features if caching or basemap rendering fails.
     """
     try:
         if mode == "stock":
@@ -49,9 +55,10 @@ def draw_etopo_basemap(ax, mode="basemap", zoom=11):
             extent = ax.get_extent(crs=ccrs.PlateCarree())
             extent_str = "_".join(f"{v:.4f}" for v in extent)
             cache_key = hashlib.md5(extent_str.encode()).hexdigest()
-            cache_file = os.path.join(BASEMAP_TILE_CACHE_DIR, f"{cache_key}_highres.png")
+            cache_file = (os.path.join(BASEMAP_TILE_CACHE_DIR, f"{cache_key}_highres.png")
+                          if BASEMAP_TILE_CACHE_DIR else None)
 
-            if os.path.exists(cache_file):
+            if cache_file and os.path.exists(cache_file):
                 img = Image.open(cache_file)
                 ax.imshow(img, extent=extent, transform=ccrs.PlateCarree())
             else:
@@ -65,11 +72,17 @@ def draw_etopo_basemap(ax, mode="basemap", zoom=11):
                             resolution='f', ax=temp_ax)
 
                 m.shadedrelief()
-                fig.savefig(cache_file, dpi=300, bbox_inches='tight', pad_inches=0)
+
+                if cache_file:
+                    try:
+                        fig.savefig(cache_file, dpi=300, bbox_inches='tight', pad_inches=0)
+                    except Exception:
+                        print("[Basemap Cache Write Failed] Skipping cache.")
                 plt.close(fig)
 
-                img = Image.open(cache_file)
-                ax.imshow(img, extent=extent, transform=ccrs.PlateCarree())
+                # img = Image.open(cache_file) if cache_file and os.path.exists(cache_file) else None
+                # if img:
+                #     ax.imshow(img, extent=extent, transform=ccrs.PlateCarree())
 
         else:
             raise ValueError(f"Unsupported basemap mode: {mode}")
