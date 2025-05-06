@@ -481,6 +481,7 @@ from ash_animator.converter import NAMEDataProcessor
 from ash_animator.plot_3dfield_data import Plot_3DField_Data
 from ash_animator.plot_horizontal_data import Plot_Horizontal_Data
 from ash_animator import create_grid
+import os 
 
 pn.extension()
 
