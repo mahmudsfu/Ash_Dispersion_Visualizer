@@ -239,7 +239,7 @@ def export_jpg_frames():
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
         Plot_3DField_Data(animator, out, cmap_select_3d.value,
-                          threshold_slider_3d.value, zoom_slider_3d.value).export_frames_as_jpgs(include_metadata=True)
+                          threshold_slider_3d.value, zoom_slider_3d.value, basemap_type="stock").export_frames_as_jpgs(include_metadata=True)
         update_media_tabs()
         status.object = "✅ JPG frames exported."
     except Exception as e:
