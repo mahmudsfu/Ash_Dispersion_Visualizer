@@ -18,7 +18,9 @@ pn.extension()
 
 import tempfile
 
-MEDIA_DIR = os.environ.get("NAME_MEDIA_DIR", os.path.join(tempfile.gettempdir(), "name_media"))
+#MEDIA_DIR = os.environ.get("NAME_MEDIA_DIR", os.path.join(tempfile.gettempdir(), "name_media"))
+
+MEDIA_DIR = os.path.abspath(os.path.join(".", "name_media"))
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
 # Logging setup
