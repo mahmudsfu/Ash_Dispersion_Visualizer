@@ -504,7 +504,8 @@ reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 
 # Live log viewer
-live_log_output = pn.pane.Markdown("📜 Log output will appear here...", sizing_mode="stretch_width", height=250, style={'overflow-y': 'scroll'})
+live_log_output = pn.pane.Markdown("📜 Log output will appear here...", sizing_mode="stretch_width", height=250)
+
 
 
 def update_live_log():
@@ -512,11 +513,13 @@ def update_live_log():
         if os.path.exists(LOG_FILE):
             with open(LOG_FILE, "r") as f:
                 lines = f.readlines()
-            live_log_output.object = "".join(lines[-40:]) or "📭 No logs yet."
+            log_text = ''.join(lines[-40:]) or "📭 No logs yet."
+            live_log_output.object = f"```\n{log_text}\n```"
         else:
             live_log_output.object = "⚠️ Log file not found."
     except Exception as e:
         live_log_output.object = f"❌ Failed to read log: {e}"
+
 
 pn.state.add_periodic_callback(update_live_log, period=3000)
 
