@@ -467,29 +467,22 @@ pn.template.EditableTemplate(
     main=[tabs],
 ).servable()
  '''
- 
 import os
 import glob
 import shutil
-import io
 import logging
 import panel as pn
 import xarray as xr
 import tempfile
-from datetime import datetime
 from types import SimpleNamespace
-from collections import defaultdict
 from ash_animator.converter import NAMEDataProcessor
 from ash_animator.plot_3dfield_data import Plot_3DField_Data
-from ash_animator.plot_horizontal_data import Plot_Horizontal_Data
 from ash_animator import create_grid
 
 pn.extension()
 
 # ---------------- Setup ----------------
-#MEDIA_DIR = os.environ.get("NAME_MEDIA_DIR", os.path.join(tempfile.gettempdir(), "name_media"))
 MEDIA_DIR = os.path.abspath(os.path.join(".", "name_media"))
-
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
 LOG_FILE = os.path.join(MEDIA_DIR, "app_errors.log")
@@ -503,10 +496,15 @@ process_button = pn.widgets.Button(name="📦 Process ZIP", button_type="primary
 reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 
+# Sliders for 3D animation settings
+threshold_slider_3d = pn.widgets.FloatSlider(name='3D Threshold', start=0.0, end=1.0, step=0.05, value=0.1)
+zoom_slider_3d = pn.widgets.IntSlider(name='3D Zoom Level', start=1, end=20, value=19)
+cmap_select_3d = pn.widgets.Select(name='3D Colormap', options=["viridis", "plasma", "rainbow"])
+fps_slider_3d = pn.widgets.IntSlider(name='3D FPS', start=1, end=10, value=2)
+altitude_slider = pn.widgets.IntSlider(name='Ash Altitude Level (index)', start=0, end=15, value=1)
+
 # Live log viewer
 live_log_output = pn.pane.Markdown("📜 Log output will appear here...", sizing_mode="stretch_width", height=250)
-
-
 
 def update_live_log():
     try:
@@ -519,7 +517,6 @@ def update_live_log():
             live_log_output.object = "⚠️ Log file not found."
     except Exception as e:
         live_log_output.object = f"❌ Failed to read log: {e}"
-
 
 pn.state.add_periodic_callback(update_live_log, period=3000)
 
@@ -545,13 +542,7 @@ def process_zip(event=None):
             status.object = "📦 Using default_model.zip"
             logging.info("Using fallback ZIP: default_model.zip")
 
-        status.object = "📁 Preparing output directory..."
-        try:
-            output_dir = os.path.join("./", "ash_output")
-            os.makedirs(output_dir, exist_ok=True)
-        except PermissionError:
-            output_dir = os.path.join(tempfile.gettempdir(), "name_output")
-            os.makedirs(output_dir, exist_ok=True)
+        output_dir = os.path.join(MEDIA_DIR, "ash_output")
         shutil.rmtree(output_dir, ignore_errors=True)
         os.makedirs(output_dir, exist_ok=True)
         logging.info(f"Output directory ready at: {output_dir}")
@@ -567,18 +558,11 @@ def process_zip(event=None):
                 animator_obj["3d"].append(ds.load())
         logging.info(f"Loaded {len(animator_obj['3d'])} 3D files.")
 
-        status.object = "🌍 Loading 2D datasets..."
-        animator_obj["2d"] = []
-        for fp in sorted(glob.glob(os.path.join(output_dir, "horizontal", "*.nc"))):
-            with xr.open_dataset(fp) as ds:
-                animator_obj["2d"].append(ds.load())
-        logging.info(f"Loaded {len(animator_obj['2d'])} 2D files.")
-
         with open(os.path.join(MEDIA_DIR, "last_run.txt"), "w") as f:
             f.write(zip_path)
         logging.info("Session saved to last_run.txt")
 
-        status.object = f"✅ Processing complete. 3D: {len(animator_obj['3d'])} | 2D: {len(animator_obj['2d'])}"
+        status.object = f"✅ Processing complete. 3D: {len(animator_obj['3d'])}"
     except Exception as e:
         logging.exception("Error during ZIP processing")
         status.object = f"❌ Processing failed: {e}"
@@ -590,106 +574,117 @@ def reset_app(event=None):
         animator_obj.clear()
         file_input.value = None
 
-        status.object = "🧹 Clearing media directories..."
-        for folder in ["ash_output", "2D", "3D"]:
+        for folder in ["ash_output", "3D", "2D"]:
             shutil.rmtree(os.path.join(MEDIA_DIR, folder), ignore_errors=True)
         if os.path.exists(os.path.join(MEDIA_DIR, "last_run.txt")):
             os.remove(os.path.join(MEDIA_DIR, "last_run.txt"))
-        logging.info("Media directories and session file removed.")
 
         status.object = "✅ App has been reset."
+        logging.info("Reset complete.")
     except Exception as e:
-        logging.exception("Error during app reset")
+        logging.exception("Error during reset")
         status.object = f"❌ Failed to reset app: {e}"
 
 def restore_previous_session():
     try:
-        status.object = "🔁 Checking for previous session..."
-        logging.info("Attempting to restore previous session...")
         state_file = os.path.join(MEDIA_DIR, "last_run.txt")
         if not os.path.exists(state_file):
             status.object = "ℹ️ No previous session found."
-            logging.info("No last_run.txt file found.")
             return
 
         with open(state_file) as f:
             zip_path = f.read().strip()
-        if not os.path.exists(zip_path):
-            status.object = f"⚠️ ZIP file not found: {zip_path}"
-            logging.warning(f"ZIP from last_run.txt not found: {zip_path}")
-            return
+        output_dir = os.path.join(MEDIA_DIR, "ash_output")
+        os.makedirs(output_dir, exist_ok=True)
 
-        status.object = "📁 Restoring datasets..."
-        output_dir = os.path.join("./", "ash_output")
-        try:
-            os.makedirs(output_dir, exist_ok=True)
-        except PermissionError:
-            output_dir = os.path.join(tempfile.gettempdir(), "name_output")
-            os.makedirs(output_dir, exist_ok=True)
-
-        status.object = "📡 Loading 3D datasets..."
         animator_obj["3d"] = []
         for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc"))):
             with xr.open_dataset(fp) as ds:
                 animator_obj["3d"].append(ds.load())
-        logging.info(f"Restored {len(animator_obj['3d'])} 3D files.")
-
-        status.object = "🌍 Loading 2D datasets..."
-        animator_obj["2d"] = []
-        for fp in sorted(glob.glob(os.path.join(output_dir, "horizontal", "*.nc"))):
-            with xr.open_dataset(fp) as ds:
-                animator_obj["2d"].append(ds.load())
-        logging.info(f"Restored {len(animator_obj['2d'])} 2D files.")
 
         status.object = f"✅ Restored from: {os.path.basename(zip_path)}"
     except Exception as e:
-        logging.exception("Error restoring previous session")
-        status.object = f"❌ Failed to restore session: {e}"
+        logging.exception("Error restoring session")
+        status.object = f"❌ Could not restore session: {e}"
 
 def build_animator_3d():
     ds = animator_obj["3d"]
     attrs = ds[0].attrs
     lons, lats, grid = create_grid(attrs)
     return SimpleNamespace(
-        datasets=ds, levels=ds[0].altitude.values, lons=lons, lats=lats,
-        lon_grid=grid[0], lat_grid=grid[1]
-    )
-
-def build_animator_2d():
-    ds = animator_obj["2d"]
-    lat_grid, lon_grid = xr.broadcast(ds[0]["latitude"], ds[0]["longitude"])
-    return SimpleNamespace(
-        datasets=ds, lats=ds[0]["latitude"].values, lons=ds[0]["longitude"].values,
-        lat_grid=lat_grid.values, lon_grid=lon_grid.values
+        datasets=ds,
+        levels=ds[0].altitude.values,
+        lons=lons,
+        lats=lats,
+        lon_grid=grid[0],
+        lat_grid=grid[1],
     )
 
 def plot_z_level():
     try:
         status.object = "🛠 Building 3D animator..."
-        logging.info("Plotting Z-Level animation.")
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
         os.makedirs(out, exist_ok=True)
 
         status.object = "🎞 Creating Z-Level animation..."
-        Plot_3DField_Data(animator, out, "viridis", 0.1, 19, 2).plot_single_z_level(
-            1, "ash_altitude1km_runTimes.gif")
+        Plot_3DField_Data(
+            animator, out,
+            cmap_select_3d.value,
+            threshold_slider_3d.value,
+            zoom_slider_3d.value,
+            fps_slider_3d.value
+        ).plot_single_z_level(
+            altitude_slider.value,
+            f"ash_altitude{altitude_slider.value}km.gif"
+        )
+
         status.object = "✅ Z-Level animation created."
-        logging.info("Z-Level animation complete.")
+        logging.info("Z-Level animation completed.")
     except Exception as e:
         logging.exception("Error in plot_z_level")
         status.object = f"❌ Error in Z-Level animation: {e}"
 
-# Attach buttons
+# ---------------- Layout ----------------
 process_button.on_click(process_zip)
 reset_button.on_click(reset_app)
 
-# ---------------- Layout ----------------
+# 3D Controls tab
+tab3d = pn.Column(
+    pn.pane.Markdown("### 🎛 3D Animation Controls"),
+    threshold_slider_3d,
+    zoom_slider_3d,
+    fps_slider_3d,
+    altitude_slider,
+    cmap_select_3d,
+    pn.widgets.Button(name="🎞 Generate Z-Level Animation", button_type="primary", on_click=lambda e: tab3d.append(plot_z_level()))
+)
+
+# Logs tab
+logs_tab = pn.Column(
+    pn.pane.Markdown("### 📜 Application Logs"),
+    live_log_output
+)
+
+# Help tab
+help_tab = pn.Column(pn.pane.Markdown("""
+### ❓ Help
+
+1. Upload a NAME model ZIP.
+2. Adjust 3D settings and click generate.
+3. Use logs for debugging if needed.
+"""))
+
+tabs = pn.Tabs(
+    ("🧱 3D Field", tab3d),
+    ("📜 Logs", logs_tab),
+    ("❓ Help", help_tab)
+)
+
 sidebar = pn.Column(
-    pn.pane.Markdown("## 🌋 NAME Ash Visualizer", sizing_mode="stretch_width"),
+    pn.pane.Markdown("## 🌋 NAME Ash Visualizer"),
     pn.Card(pn.Column(file_input, process_button, reset_button), title="📂 File Upload", collapsible=True),
     pn.Card(status, title="📢 Status", collapsible=True),
-    pn.Card(live_log_output, title="📡 Live Logs", collapsible=True),
 )
 
 restore_previous_session()
@@ -697,5 +692,5 @@ restore_previous_session()
 pn.template.FastListTemplate(
     title="NAME Visualizer",
     sidebar=sidebar,
-    main=[pn.pane.Markdown("Welcome to the NAME Dashboard. Use the sidebar to begin.")]
+    main=[tabs]
 ).servable()
