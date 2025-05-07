@@ -121,6 +121,7 @@ def process_zip(event=None):
         with open(os.path.join(MEDIA_DIR, "last_run.txt"), "w") as f:
             f.write(zip_path)
 
+        progress.value = 100
         status.object += f" | ✅ Loaded 3D: {len(animator_obj['3d'])} & 2D: {len(animator_obj['2d'])}"
         update_media_tabs()
     except Exception as e:
@@ -223,6 +224,7 @@ def plot_vertical_profile():
         plotter.plot_vertical_profile_at_time(Altitude_slider.value - 1,
                                               filename=f"T{Altitude_slider.value - 1}_profile.gif")
         update_media_tabs()
+        progress.value = 100
         status.object = "✅ Vertical profile animation created."
     except Exception as e:
         logging.exception("Error in plot_vertical_profile")
@@ -235,6 +237,7 @@ def animate_all_altitude_profiles():
         Plot_3DField_Data(animator, out, cmap_select_3d.value,
                           threshold_slider_3d.value, zoom_slider_3d.value).animate_all_altitude_profiles()
         update_media_tabs()
+        progress.value = 100
         status.object = "✅ All altitude profile animations created."
     except Exception as e:
         logging.exception("Error in animate_all_altitude_profiles")
@@ -247,6 +250,7 @@ def export_jpg_frames():
         Plot_3DField_Data(animator, out, cmap_select_3d.value,
                           threshold_slider_3d.value, zoom_slider_3d.value).export_frames_as_jpgs(include_metadata=True)
         update_media_tabs()
+        progress.value = 100
         status.object = "✅ JPG frames exported."
     except Exception as e:
         logging.exception("Error exporting JPG frames")
@@ -262,6 +266,7 @@ def plot_2d_field(field):
                              zoom_level=zoom_slider_2d.value,
                              static_frame_export=True).plot_single_field_over_time(field, f"{field}.gif")
         update_media_tabs()
+        progress.value = 100
         status.object = f"✅ 2D field `{field}` animation created."
     except Exception as e:
         logging.exception(f"Error in plot_2d_field: {field}")
