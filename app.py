@@ -375,8 +375,7 @@ def generate_output_gallery(base_folder):
     return pn.Row(preview_container, pn.Spacer(width=20), folder_scroll)
 
 def update_media_tabs():
-    import panel.io.server as server
-    server.reload()
+    status.object = "🔁 Refreshing media tabs..."
     media_tab_2d.objects[:] = [generate_output_gallery("2D")]
     media_tab_3d.objects[:] = [generate_output_gallery("3D")]
     progress.value=0
