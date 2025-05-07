@@ -71,7 +71,7 @@ class Plot_3DField_Data:
                  include_metadata=True, threshold=0.1,
                  zoom_width_deg=6.0, zoom_height_deg=6.0, zoom_level=7, basemap_type="stock"):
         self.animator = animator
-        
+                
         self.output_dir = os.path.abspath(
             os.path.join(
                 os.environ.get("NAME_OUTPUT_DIR", tempfile.gettempdir()),
@@ -154,7 +154,7 @@ class Plot_3DField_Data:
                     arrowprops=dict(arrowstyle="->", color='white', lw=0.5))
 
     def _plot_frame(self, ax, data, lons, lats, title, levels, scale_label, proj):
-        draw_etopo_basemap(ax, mode=self.basemap_type, zoom=self.zoom_level)
+        draw_etopo_basemap(ax, mode="stock", zoom=self.zoom_level)
         c = ax.contourf(lons, lats, data, levels=levels, cmap=self.cmap, alpha=0.6, transform=proj)
         ax.contour(lons, lats, data, levels=levels, colors='black', linewidths=0.5, transform=proj)
         ax.set_title(title)
