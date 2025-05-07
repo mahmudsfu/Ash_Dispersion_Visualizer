@@ -35,6 +35,9 @@ file_input = pn.widgets.FileInput(accept=".zip")
 process_button = pn.widgets.Button(name="📦 Process ZIP", button_type="primary")
 reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
+############
+progress = pn.indicators.Progress(name='Progress', value=0, max=100, width=400)
+
 
 download_button = pn.widgets.FileDownload(
     label="⬇️ Download All Exports",
@@ -128,6 +131,7 @@ def reset_app(event=None):
     animator_obj.clear()
     file_input.value = None
     status.object = "🔄 App has been reset."
+    progress.value = 0
     for folder in ["ash_output", "2D", "3D"]:
         shutil.rmtree(os.path.join(MEDIA_DIR, folder), ignore_errors=True)
     if os.path.exists(os.path.join(MEDIA_DIR, "last_run.txt")):
@@ -456,7 +460,7 @@ sidebar = pn.Column(
             title="📂 File Upload & Processing", collapsible=True, sizing_mode="stretch_width"),
     pn.Card(pn.Column(download_button, log_link, sizing_mode="stretch_width"),
             title="📁 Downloads & Logs", collapsible=True, sizing_mode="stretch_width"),
-    pn.Card(status, title="📢 Status", collapsible=True, sizing_mode="stretch_width"),
+    pn.Card(status, title="📢 Status", collapsible=True, sizing_mode="stretch_width"),pn.Card(progress, title="⏳ Progress", collapsible=True, sizing_mode="stretch_width"),
     sizing_mode="stretch_width"
 )
 
