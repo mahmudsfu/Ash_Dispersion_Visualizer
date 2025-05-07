@@ -232,6 +232,7 @@ def plot_vertical_profile():
 
 def animate_all_altitude_profiles():
     try:
+        progress.value=100
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
         Plot_3DField_Data(animator, out, cmap_select_3d.value,
@@ -245,6 +246,7 @@ def animate_all_altitude_profiles():
 
 def export_jpg_frames():
     try:
+        progress.value=0
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
         Plot_3DField_Data(animator, out, cmap_select_3d.value,
@@ -258,6 +260,7 @@ def export_jpg_frames():
 
 def plot_2d_field(field):
     try:
+        progress.value=0
         animator = build_animator_2d()
         out = os.path.join(MEDIA_DIR, "2D")
         Plot_Horizontal_Data(animator, out, cmap_select_2d.value, fps_slider_2d.value,
@@ -372,8 +375,11 @@ def generate_output_gallery(base_folder):
     return pn.Row(preview_container, pn.Spacer(width=20), folder_scroll)
 
 def update_media_tabs():
+    import panel.io.server as server
+    server.reload()
     media_tab_2d.objects[:] = [generate_output_gallery("2D")]
     media_tab_3d.objects[:] = [generate_output_gallery("3D")]
+    progress.value=0
 
 media_tab_2d = pn.Column(generate_output_gallery("2D"))
 media_tab_3d = pn.Column(generate_output_gallery("3D"))
