@@ -38,7 +38,7 @@ process_button = pn.widgets.Button(name="📦 Process ZIP", button_type="primary
 reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 ############
-progress = pn.indicators.Progress(name='Progress', value=0, max=100, width=400)
+progress = pn.indicators.Progress(name='Progress', value=0, max=100, width=400, active=True, bar_color="primary")
 
 
 
