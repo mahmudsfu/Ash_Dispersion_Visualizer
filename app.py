@@ -100,7 +100,7 @@ def process_zip(event=None):
 
     try:
         processor = NAMEDataProcessor(output_root=output_dir)
-        status.object=processor.batch_process_zip(zip_path)
+        processor.batch_process_zip(zip_path)
 
         # animator_obj["3d"] = [xr.open_dataset(fp).load()
         #                       for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc")))]
