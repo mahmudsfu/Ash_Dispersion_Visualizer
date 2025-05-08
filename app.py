@@ -390,10 +390,10 @@ def generate_output_gallery(base_folder):
 
 
 def update_media_tabs():
-    status.object = "🔁 Refreshing media tabs..."
+    #status.object = "🔁 Refreshing media tabs..."
     media_tab_2d.objects[:] = [generate_output_gallery("2D")]
     media_tab_3d.objects[:] = [generate_output_gallery("3D")]
-    progress.value=0
+    
 
 media_tab_2d = pn.Column(generate_output_gallery("2D"))
 media_tab_3d = pn.Column(generate_output_gallery("3D"))
