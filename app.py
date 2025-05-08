@@ -14,6 +14,8 @@ from ash_animator.plot_3dfield_data import Plot_3DField_Data
 from ash_animator.plot_horizontal_data import Plot_Horizontal_Data
 from ash_animator import create_grid
 
+import contextlib
+
 pn.extension()
 
 import tempfile
@@ -37,6 +39,17 @@ reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 ############
 progress = pn.indicators.Progress(name='Progress', value=0, max=100, width=400)
+
+# Context manager to capture print output
+def capture_output(func):
+    def wrapper(*args, **kwargs):
+        output_io = io.StringIO()
+        with contextlib.redirect_stdout(output_io), contextlib.redirect_stderr(output_io):
+            result = func(*args, **kwargs)
+        captured = output_io.getvalue()
+        if captured:
+            status.object = f"📤 Output Captured:\n\n``` {captured.strip()} ```"
+            
 
 
 download_button = pn.widgets.FileDownload(
@@ -68,6 +81,7 @@ fps_slider_2d = pn.widgets.IntSlider(name='2D FPS', start=1, end=10, value=2)
 cmap_select_2d = pn.widgets.Select(name='2D Colormap', options=["rainbow", "viridis", "plasma"])
 
 # ---------------- Core Functions ----------------
+@capture_output
 def process_zip(event=None):
     if file_input.value:
         zip_path = os.path.join(MEDIA_DIR, file_input.filename)
@@ -127,7 +141,7 @@ def process_zip(event=None):
     except Exception as e:
         logging.exception("Error during ZIP processing")
         status.object = f"❌ Processing failed: {e}"
-
+@capture_output
 def reset_app(event=None):
     animator_obj.clear()
     file_input.value = None
@@ -138,7 +152,7 @@ def reset_app(event=None):
     if os.path.exists(os.path.join(MEDIA_DIR, "last_run.txt")):
         os.remove(os.path.join(MEDIA_DIR, "last_run.txt"))
     update_media_tabs()
-
+@capture_output
 def restore_previous_session():
     try:
         state_file = os.path.join(MEDIA_DIR, "last_run.txt")
@@ -173,6 +187,7 @@ process_button.on_click(process_zip)
 reset_button.on_click(reset_app)
 
 # ---------------- Animator Builders ----------------
+@capture_output
 def build_animator_3d():
     ds = animator_obj["3d"]
     attrs = ds[0].attrs
@@ -185,7 +200,7 @@ def build_animator_3d():
         lon_grid=grid[0],
         lat_grid=grid[1],
     )
-
+@capture_output
 def build_animator_2d():
     ds = animator_obj["2d"]
     lat_grid, lon_grid = xr.broadcast(ds[0]["latitude"], ds[0]["longitude"])
@@ -198,6 +213,7 @@ def build_animator_2d():
     )
 
 # ---------------- Plot Functions ----------------
+@capture_output
 def plot_z_level():
     try:
         animator = build_animator_3d()
@@ -212,7 +228,8 @@ def plot_z_level():
     except Exception as e:
         logging.exception("Error in plot_z_level")
         status.object = f"❌ Error in Z-Level animation: {e}"
-
+        
+@capture_output
 def plot_vertical_profile():
     try:
         animator = build_animator_3d()
@@ -229,7 +246,8 @@ def plot_vertical_profile():
     except Exception as e:
         logging.exception("Error in plot_vertical_profile")
         status.object = f"❌ Error in vertical profile animation: {e}"
-
+        
+@capture_output
 def animate_all_altitude_profiles():
     try:
         progress.value=100
@@ -244,6 +262,7 @@ def animate_all_altitude_profiles():
         logging.exception("Error in animate_all_altitude_profiles")
         status.object = f"❌ Error animating all altitude profiles: {e}"
 
+@capture_output
 def export_jpg_frames():
     try:
         progress.value=0
@@ -257,7 +276,8 @@ def export_jpg_frames():
     except Exception as e:
         logging.exception("Error exporting JPG frames")
         status.object = f"❌ Error exporting JPG frames: {e}"
-
+        
+@capture_output
 def plot_2d_field(field):
     try:
         progress.value=0
@@ -281,6 +301,7 @@ def plot_2d_field(field):
 # # Live log viewer
 live_log_output = pn.pane.Markdown("📜 Log output will appear here...", height=250, sizing_mode="stretch_width")
 
+@capture_output
 def update_live_log():
     try:
         if os.path.exists(LOG_FILE):
@@ -302,6 +323,7 @@ pn.state.add_periodic_callback(update_live_log, period=3000)
 
 
 # ---------------- Layout ----------------
+@capture_output
 def human_readable_size(size):
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size < 1024: return f"{size:.1f} {unit}"
@@ -310,7 +332,7 @@ def human_readable_size(size):
 
 
 
-
+@capture_output
 def generate_output_gallery(base_folder):
     preview_container = pn.Column(width=640, height=550)
     preview_container.append(pn.pane.Markdown("👈 Click a thumbnail to preview"))
@@ -374,6 +396,7 @@ def generate_output_gallery(base_folder):
     folder_scroll = pn.Column(*folder_cards, scroll=True, height=600, width=420)
     return pn.Row(preview_container, pn.Spacer(width=20), folder_scroll)
 
+@capture_output
 def update_media_tabs():
     status.object = "🔁 Refreshing media tabs..."
     media_tab_2d.objects[:] = [generate_output_gallery("2D")]
