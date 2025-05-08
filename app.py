@@ -100,7 +100,7 @@ def process_zip(event=None):
 
     try:
         processor = NAMEDataProcessor(output_root=output_dir)
-        status.object=print(processor.batch_process_zip(zip_path))
+        status.object=processor.batch_process_zip(zip_path)
 
         # animator_obj["3d"] = [xr.open_dataset(fp).load()
         #                       for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc")))]
@@ -260,8 +260,8 @@ def export_jpg_frames():
         progress.value=0
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
-        status.object= print(Plot_3DField_Data(animator, out, cmap_select_3d.value,
-                          threshold_slider_3d.value, zoom_slider_3d.value).export_frames_as_jpgs(include_metadata=True))
+        status.object= Plot_3DField_Data(animator, out, cmap_select_3d.value,
+                          threshold_slider_3d.value, zoom_slider_3d.value).export_frames_as_jpgs(include_metadata=True)
         update_media_tabs()
         progress.value = 100
         status.object = "✅ JPG frames exported."
@@ -275,11 +275,11 @@ def plot_2d_field(field):
         progress.value=0
         animator = build_animator_2d()
         out = os.path.join(MEDIA_DIR, "2D")
-        status.object= print(Plot_Horizontal_Data(animator, out, cmap_select_2d.value, fps_slider_2d.value,
+        status.object= Plot_Horizontal_Data(animator, out, cmap_select_2d.value, fps_slider_2d.value,
                              include_metadata=True, threshold=threshold_slider_2d.value,
                              zoom_width_deg=6.0, zoom_height_deg=6.0,
                              zoom_level=zoom_slider_2d.value,
-                             static_frame_export=True).plot_single_field_over_time(field, f"{field}.gif"))
+                             static_frame_export=True).plot_single_field_over_time(field, f"{field}.gif")
         update_media_tabs()
         progress.value = 100
         status.object = f"✅ 2D field `{field}` animation created."
