@@ -152,7 +152,8 @@ def reset_app(event=None):
     if os.path.exists(os.path.join(MEDIA_DIR, "last_run.txt")):
         os.remove(os.path.join(MEDIA_DIR, "last_run.txt"))
     update_media_tabs()
-@capture_output
+    
+
 def restore_previous_session():
     try:
         state_file = os.path.join(MEDIA_DIR, "last_run.txt")
