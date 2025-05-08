@@ -263,7 +263,7 @@ def export_jpg_frames():
         status.object= Plot_3DField_Data(animator, out, cmap_select_3d.value,
                           threshold_slider_3d.value, zoom_slider_3d.value).export_frames_as_jpgs(include_metadata=True)
         update_media_tabs()
-        progress.value = 100
+         
         status.object = "✅ JPG frames exported."
     except Exception as e:
         logging.exception("Error exporting JPG frames")
@@ -281,7 +281,7 @@ def plot_2d_field(field):
                              zoom_level=zoom_slider_2d.value,
                              static_frame_export=True).plot_single_field_over_time(field, f"{field}.gif")
         update_media_tabs()
-        progress.value = 100
+         
         status.object = f"✅ 2D field `{field}` animation created."
     except Exception as e:
         logging.exception(f"Error in plot_2d_field: {field}")
