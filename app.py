@@ -38,7 +38,7 @@ process_button = pn.widgets.Button(name="📦 Process ZIP", button_type="primary
 reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 ############
-progress = pn.indicators.Progress(name='Progress', value=0, max=100, width=400, active=True, bar_color="primary")
+progress = pn.indicators.Progress(name='Indeterminate Progress', width=400, active=True, bar_color="primary")
 
 
 
@@ -126,7 +126,7 @@ def process_zip(event=None):
         with open(os.path.join(MEDIA_DIR, "last_run.txt"), "w") as f:
             f.write(zip_path)
 
-        progress.value = 100
+       
         status.object += f" | ✅ Loaded 3D: {len(animator_obj['3d'])} & 2D: {len(animator_obj['2d'])}"
         update_media_tabs()
     except Exception as e:
@@ -137,7 +137,7 @@ def reset_app(event=None):
     animator_obj.clear()
     file_input.value = None
     status.object = "🔄 App has been reset."
-    progress.value = 0
+    
     for folder in ["ash_output", "2D", "3D"]:
         shutil.rmtree(os.path.join(MEDIA_DIR, folder), ignore_errors=True)
     if os.path.exists(os.path.join(MEDIA_DIR, "last_run.txt")):
@@ -233,7 +233,7 @@ def plot_vertical_profile():
         plotter.plot_vertical_profile_at_time(Altitude_slider.value - 1,
                                               filename=f"T{Altitude_slider.value - 1}_profile.gif")
         update_media_tabs()
-        progress.value = 100
+        
         status.object = "✅ Vertical profile animation created."
     except Exception as e:
         logging.exception("Error in plot_vertical_profile")
@@ -242,13 +242,13 @@ def plot_vertical_profile():
 
 def animate_all_altitude_profiles():
     try:
-        progress.value=100
+        
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
         Plot_3DField_Data(animator, out, cmap_select_3d.value,
                           threshold_slider_3d.value, zoom_slider_3d.value).animate_all_altitude_profiles()
         update_media_tabs()
-        progress.value = 100
+       
         status.object = "✅ All altitude profile animations created."
     except Exception as e:
         logging.exception("Error in animate_all_altitude_profiles")
@@ -257,7 +257,7 @@ def animate_all_altitude_profiles():
 
 def export_jpg_frames():
     try:
-        progress.value=0
+         
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
         status.object= Plot_3DField_Data(animator, out, cmap_select_3d.value,
@@ -272,7 +272,7 @@ def export_jpg_frames():
 
 def plot_2d_field(field):
     try:
-        progress.value=0
+         
         animator = build_animator_2d()
         out = os.path.join(MEDIA_DIR, "2D")
         status.object= Plot_Horizontal_Data(animator, out, cmap_select_2d.value, fps_slider_2d.value,
