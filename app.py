@@ -301,7 +301,7 @@ def plot_2d_field(field):
 # # Live log viewer
 live_log_output = pn.pane.Markdown("📜 Log output will appear here...", height=250, sizing_mode="stretch_width")
 
-@capture_output
+
 def update_live_log():
     try:
         if os.path.exists(LOG_FILE):
@@ -317,6 +317,22 @@ def update_live_log():
 pn.state.add_periodic_callback(update_live_log, period=3000)
 
 
+# live_log_output = pn.pane.Markdown("📜 Log output will appear here...", height=250, sizing_mode="stretch_width")
+
+# @capture_output
+# def update_live_log():
+#     try:
+#         if os.path.exists(LOG_FILE):
+#             with open(LOG_FILE, "r") as f:
+#                 lines = f.readlines()
+#             log_text = ''.join(lines[-40:]) or "📭 No logs yet."
+#             live_log_output.object = f"{log_text}"
+#         else:
+#             live_log_output.object = "⚠️ Log file not found."
+#     except Exception as e:
+#         live_log_output.object = f"❌ Failed to read log: {e}"
+
+# live_log_callback = pn.state.add_periodic_callback(update_live_log, period=3000)
 
 #####################
 
