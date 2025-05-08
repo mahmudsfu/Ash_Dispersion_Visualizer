@@ -40,16 +40,7 @@ status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 ############
 progress = pn.indicators.Progress(name='Progress', value=0, max=100, width=400)
 
-# Context manager to capture print output
-def capture_output(func):
-    def wrapper(*args, **kwargs):
-        output_io = io.StringIO()
-        with contextlib.redirect_stdout(output_io), contextlib.redirect_stderr(output_io):
-            result = func(*args, **kwargs)
-        captured = output_io.getvalue()
-        if captured:
-            status.object = f"📤 Output Captured:\n\n``` {captured.strip()} ```"
-            
+
 
 
 download_button = pn.widgets.FileDownload(
@@ -81,7 +72,7 @@ fps_slider_2d = pn.widgets.IntSlider(name='2D FPS', start=1, end=10, value=2)
 cmap_select_2d = pn.widgets.Select(name='2D Colormap', options=["rainbow", "viridis", "plasma"])
 
 # ---------------- Core Functions ----------------
-@capture_output
+
 def process_zip(event=None):
     if file_input.value:
         zip_path = os.path.join(MEDIA_DIR, file_input.filename)
@@ -109,7 +100,7 @@ def process_zip(event=None):
 
     try:
         processor = NAMEDataProcessor(output_root=output_dir)
-        processor.batch_process_zip(zip_path)
+        status.object=print(processor.batch_process_zip(zip_path))
 
         # animator_obj["3d"] = [xr.open_dataset(fp).load()
         #                       for fp in sorted(glob.glob(os.path.join(output_dir, "3D", "*.nc")))]
@@ -141,7 +132,7 @@ def process_zip(event=None):
     except Exception as e:
         logging.exception("Error during ZIP processing")
         status.object = f"❌ Processing failed: {e}"
-@capture_output
+
 def reset_app(event=None):
     animator_obj.clear()
     file_input.value = None
@@ -188,7 +179,7 @@ process_button.on_click(process_zip)
 reset_button.on_click(reset_app)
 
 # ---------------- Animator Builders ----------------
-@capture_output
+
 def build_animator_3d():
     ds = animator_obj["3d"]
     attrs = ds[0].attrs
@@ -201,7 +192,7 @@ def build_animator_3d():
         lon_grid=grid[0],
         lat_grid=grid[1],
     )
-@capture_output
+
 def build_animator_2d():
     ds = animator_obj["2d"]
     lat_grid, lon_grid = xr.broadcast(ds[0]["latitude"], ds[0]["longitude"])
@@ -214,7 +205,7 @@ def build_animator_2d():
     )
 
 # ---------------- Plot Functions ----------------
-@capture_output
+
 def plot_z_level():
     try:
         animator = build_animator_3d()
@@ -230,7 +221,7 @@ def plot_z_level():
         logging.exception("Error in plot_z_level")
         status.object = f"❌ Error in Z-Level animation: {e}"
         
-@capture_output
+
 def plot_vertical_profile():
     try:
         animator = build_animator_3d()
@@ -248,7 +239,7 @@ def plot_vertical_profile():
         logging.exception("Error in plot_vertical_profile")
         status.object = f"❌ Error in vertical profile animation: {e}"
         
-@capture_output
+
 def animate_all_altitude_profiles():
     try:
         progress.value=100
@@ -263,14 +254,14 @@ def animate_all_altitude_profiles():
         logging.exception("Error in animate_all_altitude_profiles")
         status.object = f"❌ Error animating all altitude profiles: {e}"
 
-@capture_output
+
 def export_jpg_frames():
     try:
         progress.value=0
         animator = build_animator_3d()
         out = os.path.join(MEDIA_DIR, "3D")
-        Plot_3DField_Data(animator, out, cmap_select_3d.value,
-                          threshold_slider_3d.value, zoom_slider_3d.value).export_frames_as_jpgs(include_metadata=True)
+        status.object= print(Plot_3DField_Data(animator, out, cmap_select_3d.value,
+                          threshold_slider_3d.value, zoom_slider_3d.value).export_frames_as_jpgs(include_metadata=True))
         update_media_tabs()
         progress.value = 100
         status.object = "✅ JPG frames exported."
@@ -278,17 +269,17 @@ def export_jpg_frames():
         logging.exception("Error exporting JPG frames")
         status.object = f"❌ Error exporting JPG frames: {e}"
         
-@capture_output
+
 def plot_2d_field(field):
     try:
         progress.value=0
         animator = build_animator_2d()
         out = os.path.join(MEDIA_DIR, "2D")
-        Plot_Horizontal_Data(animator, out, cmap_select_2d.value, fps_slider_2d.value,
+        status.object= print(Plot_Horizontal_Data(animator, out, cmap_select_2d.value, fps_slider_2d.value,
                              include_metadata=True, threshold=threshold_slider_2d.value,
                              zoom_width_deg=6.0, zoom_height_deg=6.0,
                              zoom_level=zoom_slider_2d.value,
-                             static_frame_export=True).plot_single_field_over_time(field, f"{field}.gif")
+                             static_frame_export=True).plot_single_field_over_time(field, f"{field}.gif"))
         update_media_tabs()
         progress.value = 100
         status.object = f"✅ 2D field `{field}` animation created."
@@ -318,22 +309,6 @@ def update_live_log():
 pn.state.add_periodic_callback(update_live_log, period=3000)
 
 
-# live_log_output = pn.pane.Markdown("📜 Log output will appear here...", height=250, sizing_mode="stretch_width")
-
-# @capture_output
-# def update_live_log():
-#     try:
-#         if os.path.exists(LOG_FILE):
-#             with open(LOG_FILE, "r") as f:
-#                 lines = f.readlines()
-#             log_text = ''.join(lines[-40:]) or "📭 No logs yet."
-#             live_log_output.object = f"{log_text}"
-#         else:
-#             live_log_output.object = "⚠️ Log file not found."
-#     except Exception as e:
-#         live_log_output.object = f"❌ Failed to read log: {e}"
-
-# live_log_callback = pn.state.add_periodic_callback(update_live_log, period=3000)
 
 #####################
 
