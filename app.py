@@ -38,7 +38,6 @@ process_button = pn.widgets.Button(name="📦 Process ZIP", button_type="primary
 reset_button = pn.widgets.Button(name="🔄 Reset App", button_type="danger")
 status = pn.pane.Markdown("### Upload a NAME Model ZIP to begin")
 ############
-progress = pn.indicators.Progress(name='Indeterminate Progress', width=400, active=True, bar_color="primary")
 
 
 
@@ -485,7 +484,7 @@ sidebar = pn.Column(
             title="📂 File Upload & Processing", collapsible=True, sizing_mode="stretch_width"),
     pn.Card(pn.Column(download_button, log_link, sizing_mode="stretch_width"),
             title="📁 Downloads & Logs", collapsible=True, sizing_mode="stretch_width"),
-    pn.Card(status, title="📢 Status", collapsible=True, sizing_mode="stretch_width"),pn.Card(progress, title="⏳ Progress", collapsible=True, sizing_mode="stretch_width"),
+    pn.Card(status, title="📢 Status", collapsible=True, sizing_mode="stretch_width"),
     sizing_mode="stretch_width"
 )
 
