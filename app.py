@@ -339,7 +339,7 @@ pn.state.add_periodic_callback(update_live_log, period=3000)
 
 
 # ---------------- Layout ----------------
-@capture_output
+
 def human_readable_size(size):
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size < 1024: return f"{size:.1f} {unit}"
@@ -348,7 +348,7 @@ def human_readable_size(size):
 
 
 
-@capture_output
+
 def generate_output_gallery(base_folder):
     preview_container = pn.Column(width=640, height=550)
     preview_container.append(pn.pane.Markdown("👈 Click a thumbnail to preview"))
@@ -412,7 +412,7 @@ def generate_output_gallery(base_folder):
     folder_scroll = pn.Column(*folder_cards, scroll=True, height=600, width=420)
     return pn.Row(preview_container, pn.Spacer(width=20), folder_scroll)
 
-@capture_output
+
 def update_media_tabs():
     status.object = "🔁 Refreshing media tabs..."
     media_tab_2d.objects[:] = [generate_output_gallery("2D")]
